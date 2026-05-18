@@ -1,2 +1,0 @@
-{"id": "rag1", "question": "관객개발 KPI를 3개 제안해줘.", "must_contain": ["KPI"], "optional": ["재방문", "전환"]}
-{"id": "rag2", "question": "후원 패키지 혜택 3개만 요약해줘.", "must_contain": ["후원"], "optional": ["혜택", "브랜딩"]}

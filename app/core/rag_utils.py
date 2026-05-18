@@ -2,36 +2,48 @@ from __future__ import annotations
 import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredMarkdownLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from app.core.llm_factory import build_embeddings
 from app.core import settings
 
 def load_documents(docs_dir: str):
     docs = []
     for root, _, files in os.walk(docs_dir):
-        for fn in files:
+        if os.path.basename(root).startswith("."):
+            continue
+        for fn in sorted(files):
             path = os.path.join(root, fn)
             lower = fn.lower()
             try:
                 if lower.endswith(".pdf"):
                     docs.extend(PyPDFLoader(path).load())
-                elif lower.endswith(".md"):
-                    docs.extend(UnstructuredMarkdownLoader(path).load())
-                elif lower.endswith(".txt"):
-                    docs.extend(TextLoader(path, encoding="utf-8").load())
+                elif lower.endswith((".md", ".txt")):
+                    loaded = TextLoader(path, encoding="utf-8").load()
+                    for d in loaded:
+                        d.metadata["filename"] = fn
+                        d.metadata["source"] = fn
+                    docs.extend(loaded)
             except Exception:
                 continue
     return docs
 
+_ingested: set[str] = set()
+
 def ingest_dir(docs_dir: str, persist_dir: str, collection: str) -> int:
+    key = f"{docs_dir}::{collection}"
+    if key in _ingested:
+        return 0
     docs = load_documents(docs_dir)
     if not docs:
         return 0
     splitter = RecursiveCharacterTextSplitter(chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
     chunks = splitter.split_documents(docs)
     vs = Chroma(persist_directory=persist_dir, embedding_function=build_embeddings(), collection_name=collection)
+    vs.delete_collection()
+    vs = Chroma(persist_directory=persist_dir, embedding_function=build_embeddings(), collection_name=collection)
     vs.add_documents(chunks)
     vs.persist()
+    _ingested.add(key)
     return len(chunks)
 
 def vectorstore(persist_dir: str, collection: str):

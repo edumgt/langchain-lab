@@ -73,7 +73,7 @@ def _upsert_doc(meta: dict):
     return idx
 
 
-app = FastAPI(title="ArtBiz LangChain E2E", version="0.6.0")
+app = FastAPI(title="주식 AI Agent", version="1.0.0")
 
 
 
@@ -213,10 +213,46 @@ def artbiz_proposal_check(payload: dict):
 def health():
     return {"ok": True}
 
+
+@app.get("/docs/titles")
+def docs_titles():
+    """Return {filename: first_heading} for all .md files in DOCS_DIR."""
+    import re
+    result = {}
+    docs_dir = DOCS_DIR
+    try:
+        for fname in sorted(os.listdir(docs_dir)):
+            if not fname.endswith(".md"):
+                continue
+            path = os.path.join(docs_dir, fname)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("#"):
+                            title = re.sub(r"^#+\s*", "", line)
+                            result[fname] = title
+                            break
+            except Exception:
+                result[fname] = fname
+    except Exception:
+        pass
+    return result
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    out = run(req.q, mode=req.mode, top_k=req.top_k, auto_approve=req.auto_approve)
-    return ChatResponse(**out)
+    try:
+        out = run(req.q, mode=req.mode, top_k=req.top_k, auto_approve=req.auto_approve)
+        return ChatResponse(**out)
+    except Exception as e:
+        msg = str(e)
+        if "not found" in msg and "model" in msg.lower():
+            friendly = f"Ollama 모델이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.\n\n기술 정보: {msg}"
+        elif "connection" in msg.lower() or "refused" in msg.lower():
+            friendly = "Ollama 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해 주세요."
+        else:
+            friendly = f"처리 중 오류가 발생했습니다: {msg}"
+        raise HTTPException(status_code=500, detail=friendly)
 
 @app.post("/approve", response_model=ApproveResponse)
 def approve(req: ApproveRequest):

@@ -1,262 +1,952 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ArtBiz LangChain E2E</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주식 AI Agent</title>
+
+  <!-- Pretendard -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    /* ── Base ── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --tv-bg:        #f0f3fa;
+      --tv-surface:   #ffffff;
+      --tv-nav:       #131722;
+      --tv-nav-h:     56px;
+      --tv-sidebar-w: 300px;
+      --tv-border:    #e0e3eb;
+      --tv-accent:    #2962ff;
+      --tv-accent2:   #1a56db;
+      --tv-text:      #131722;
+      --tv-secondary: #6c7786;
+      --tv-muted:     #9598a1;
+      --tv-green:     #26a69a;
+      --tv-red:       #ef5350;
+      --tv-yellow:    #f59e0b;
+      --tv-user-bg:   #eff2fd;
+      --tv-ai-bg:     #ffffff;
+      --tv-badge-rag: #dbeafe;
+      --tv-badge-chat:#f0fdf4;
+      --tv-badge-plan:#fef3c7;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      color: var(--tv-text);
+      background: var(--tv-bg);
+    }
+
+    /* ── Navbar ── */
+    .tv-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--tv-nav-h);
+      background: var(--tv-nav);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 1040;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .tv-nav .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.2px;
+      text-decoration: none;
+    }
+    .tv-nav .brand .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--tv-accent);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .tv-nav .spacer { flex: 1; }
+    .tv-nav .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--tv-green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    .tv-nav .btn-sidebar {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.8);
+      border-radius: 6px;
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .tv-nav .btn-sidebar:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    /* ── Offcanvas sidebar ── */
+    .offcanvas {
+      --bs-offcanvas-width: var(--tv-sidebar-w);
+      --bs-offcanvas-bg: var(--tv-surface);
+      border-right: 1px solid var(--tv-border) !important;
+    }
+    .offcanvas-header {
+      background: var(--tv-nav);
+      color: #fff;
+      padding: 0 16px;
+      height: var(--tv-nav-h);
+      border-bottom: none;
+    }
+    .offcanvas-header .offcanvas-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .offcanvas-header .btn-close {
+      filter: invert(1) grayscale(1) brightness(2);
+      opacity: .6;
+    }
+    .offcanvas-body { padding: 0; overflow-y: auto; }
+
+    .sidebar-search {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--tv-border);
+      position: sticky;
+      top: 0;
+      background: var(--tv-surface);
+      z-index: 1;
+    }
+    .sidebar-search input {
+      width: 100%;
+      border: 1px solid var(--tv-border);
+      border-radius: 8px;
+      padding: 7px 12px 7px 32px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      background: var(--tv-bg);
+      color: var(--tv-text);
+      transition: border-color .15s;
+    }
+    .sidebar-search input:focus { border-color: var(--tv-accent); background: #fff; }
+    .sidebar-search .search-icon {
+      position: absolute;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--tv-muted);
+      font-size: 13px;
+    }
+
+    .sidebar-section-label {
+      padding: 10px 14px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--tv-muted);
+    }
+
+    .doc-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 14px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background .12s, border-color .12s;
+    }
+    .doc-item:hover {
+      background: var(--tv-bg);
+      border-left-color: var(--tv-accent);
+    }
+    .doc-item .doc-num {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--tv-accent);
+      background: var(--tv-badge-rag);
+      border-radius: 4px;
+      padding: 2px 5px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      min-width: 26px;
+      text-align: center;
+    }
+    .doc-item .doc-title {
+      font-size: 13px;
+      color: var(--tv-text);
+      line-height: 1.4;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--tv-border);
+      margin: 8px 0;
+    }
+
+    .sidebar-settings {
+      padding: 12px 14px;
+    }
+    .sidebar-settings label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--tv-secondary);
+      letter-spacing: .3px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .sidebar-settings select,
+    .sidebar-settings input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--tv-border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--tv-bg);
+      color: var(--tv-text);
+      outline: none;
+      margin-bottom: 10px;
+      transition: border-color .15s;
+    }
+    .sidebar-settings select:focus,
+    .sidebar-settings input[type="number"]:focus {
+      border-color: var(--tv-accent);
+      background: #fff;
+    }
+
+    .sidebar-footer {
+      padding: 10px 14px 14px;
+      font-size: 11px;
+      color: var(--tv-muted);
+      border-top: 1px solid var(--tv-border);
+    }
+
+    /* ── Main layout ── */
+    .main-wrapper {
+      margin-top: var(--tv-nav-h);
+      height: calc(100vh - var(--tv-nav-h));
+      display: flex;
+      flex-direction: column;
+      background: var(--tv-bg);
+    }
+
+    /* ── Chat area ── */
+    #chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 0 120px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* Welcome card */
+    .welcome-card {
+      background: var(--tv-surface);
+      border: 1px solid var(--tv-border);
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .welcome-card h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--tv-text);
+      margin-bottom: 6px;
+      letter-spacing: -.3px;
+    }
+    .welcome-card p {
+      font-size: 13px;
+      color: var(--tv-secondary);
+      margin-bottom: 16px;
+    }
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .quick-chip {
+      border: 1px solid var(--tv-border);
+      background: var(--tv-bg);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: var(--tv-text);
+      cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .quick-chip:hover {
+      border-color: var(--tv-accent);
+      background: var(--tv-badge-rag);
+      color: var(--tv-accent);
+    }
+
+    /* Message row */
+    .msg-row {
+      display: flex;
+      margin-bottom: 14px;
+      animation: fadeUp .2s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .msg-row.user { justify-content: flex-end; }
+    .msg-row.ai   { justify-content: flex-start; }
+
+    /* Bubbles */
+    .bubble {
+      max-width: 88%;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.65;
+      word-break: break-word;
+      position: relative;
+    }
+    .bubble.user {
+      background: var(--tv-user-bg);
+      color: var(--tv-text);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.ai {
+      background: var(--tv-surface);
+      border: 1px solid var(--tv-border);
+      border-left: 3px solid var(--tv-accent);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Mode badge */
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-bottom: 8px;
+    }
+    .mode-badge.rag  { background: var(--tv-badge-rag);  color: var(--tv-accent); }
+    .mode-badge.chat { background: var(--tv-badge-chat); color: #15803d; }
+    .mode-badge.plan { background: var(--tv-badge-plan); color: #92400e; }
+
+    /* Markdown content */
+    .md-content h1,.md-content h2,.md-content h3 {
+      margin-top: 1em; margin-bottom: .4em;
+      font-weight: 700; line-height: 1.3;
+      color: var(--tv-text);
+    }
+    .md-content h1 { font-size: 17px; }
+    .md-content h2 { font-size: 15px; }
+    .md-content h3 { font-size: 14px; }
+    .md-content p  { margin: .5em 0; }
+    .md-content ul, .md-content ol { padding-left: 20px; margin: .4em 0; }
+    .md-content li { margin: .2em 0; }
+    .md-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: .8em 0;
+      font-size: 13px;
+    }
+    .md-content th {
+      background: var(--tv-bg);
+      border: 1px solid var(--tv-border);
+      padding: 7px 10px;
+      font-weight: 600;
+      text-align: left;
+    }
+    .md-content td {
+      border: 1px solid var(--tv-border);
+      padding: 6px 10px;
+    }
+    .md-content tr:hover td { background: var(--tv-bg); }
+    .md-content code {
+      background: var(--tv-bg);
+      border: 1px solid var(--tv-border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    .md-content pre {
+      background: #1e2030;
+      border-radius: 10px;
+      padding: 14px;
+      overflow-x: auto;
+      margin: .8em 0;
+    }
+    .md-content pre code {
+      background: none;
+      border: none;
+      color: #e2e8f0;
+      font-size: 12px;
+      padding: 0;
+    }
+    .md-content blockquote {
+      border-left: 3px solid var(--tv-accent);
+      padding: 4px 12px;
+      margin: .6em 0;
+      color: var(--tv-secondary);
+      background: var(--tv-bg);
+      border-radius: 0 6px 6px 0;
+    }
+    .md-content strong { color: var(--tv-text); font-weight: 700; }
+    .md-content hr { border: none; border-top: 1px solid var(--tv-border); margin: 1em 0; }
+    .md-content a { color: var(--tv-accent); text-decoration: none; }
+    .md-content a:hover { text-decoration: underline; }
+
+    /* Source citations */
+    .sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--tv-border);
+    }
+    .source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--tv-bg);
+      border: 1px solid var(--tv-border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      color: var(--tv-secondary);
+    }
+    .source-chip .bi { color: var(--tv-accent); font-size: 10px; }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px;
+    }
+    .typing-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--tv-muted);
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: .2s; }
+    .typing-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes typingBounce {
+      0%,60%,100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    /* ── Input footer ── */
+    .input-footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--tv-surface);
+      border-top: 1px solid var(--tv-border);
+      padding: 12px 16px 14px;
+      z-index: 100;
+    }
+    .input-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Mode pills */
+    .mode-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .mode-pill {
+      border: 1px solid var(--tv-border);
+      background: var(--tv-bg);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      color: var(--tv-secondary);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .mode-pill.active {
+      background: var(--tv-accent);
+      border-color: var(--tv-accent);
+      color: #fff;
+    }
+    .mode-pill:not(.active):hover {
+      border-color: var(--tv-accent);
+      color: var(--tv-accent);
+    }
+
+    /* Input row */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    #user-input {
+      flex: 1;
+      border: 1.5px solid var(--tv-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+      max-height: 160px;
+      overflow-y: auto;
+      background: var(--tv-bg);
+      color: var(--tv-text);
+      transition: border-color .15s, background .15s;
+    }
+    #user-input:focus {
+      border-color: var(--tv-accent);
+      background: #fff;
+    }
+    #user-input::placeholder { color: var(--tv-muted); }
+    .btn-send {
+      width: 42px; height: 42px;
+      border: none;
+      border-radius: 10px;
+      background: var(--tv-accent);
+      color: #fff;
+      font-size: 16px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+    }
+    .btn-send:hover  { background: var(--tv-accent2); }
+    .btn-send:active { transform: scale(.93); }
+    .btn-send:disabled { background: var(--tv-border); cursor: not-allowed; }
+
+    .input-hint {
+      font-size: 11px;
+      color: var(--tv-muted);
+      text-align: right;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--tv-border); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--tv-muted); }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-  <div class="max-w-6xl mx-auto px-4 py-10">
-    <header class="flex flex-col gap-2 mb-8">
-      <div class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-2xl bg-slate-800/80 grid place-items-center shadow">
-          <span class="text-lg">🎭</span>
-        </div>
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight">ArtBiz LangChain E2E</h1>
-          <p class="text-slate-400 text-sm">학습용 미니 클라이언트 — <span class="font-mono">/chat</span>, <span class="font-mono">/rag/self-query</span>, <span class="font-mono">/artbiz/proposal</span>, <span class="font-mono">/docs/upload</span></p>
-        </div>
-      </div>
+<body>
 
-      <div class="flex flex-wrap gap-2 text-xs text-slate-400">
-        <span class="px-2 py-1 rounded-full bg-slate-800/60 border border-slate-700/60">API: same-origin</span>
-        <span class="px-2 py-1 rounded-full bg-slate-800/60 border border-slate-700/60">Ollama: docker network</span>
-        <span class="px-2 py-1 rounded-full bg-slate-800/60 border border-slate-700/60">Tailwind: CDN</span>
-      </div>
-    </header>
-
-    <main class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Left: Controls -->
-      <section class="rounded-2xl bg-slate-900/60 border border-slate-800 shadow p-5">
-        <h2 class="text-lg font-semibold mb-4">요청</h2>
-
-        <label class="block text-sm text-slate-300 mb-2">질문</label>
-        <textarea id="q" class="w-full min-h-[120px] rounded-xl bg-slate-950/60 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-600 px-3 py-2 text-sm"
-          placeholder="예) 예산 3천만원으로 2주 관객개발 캠페인 실행 계획">예산 3천만원으로 2주 관객개발 캠페인 실행 계획</textarea>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">mode</label>
-            <select id="mode" class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm">
-              <option value="rag" selected>rag</option>
-              <option value="chat">chat</option>
-              <option value="plan">plan</option>
-            </select>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">top_k</label>
-            <input id="topk" type="number" value="4" min="1" max="20"
-              class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm"/>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">auto_approve</label>
-            <select id="autoApprove" class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm">
-              <option value="true" selected>true</option>
-              <option value="false">false</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 mt-4">
-          <button onclick="doChat()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-sm font-medium shadow">/chat</button>
-          <button onclick="doSelfQuery()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-sm font-medium border border-slate-700 shadow">/rag/self-query</button>
-          <button onclick="doProposal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-sm font-medium shadow">/artbiz/proposal</button>
-        </div>
-
-        <hr class="border-slate-800 my-6"/>
-
-        <h3 class="text-md font-semibold mb-3">Docs Upload</h3>
-        <p class="text-xs text-slate-400 mb-3">
-          파일을 업로드하면 <span class="font-mono">/docs/upload</span>로 전송됩니다. (필드: <span class="font-mono">files</span>, multiple 지원)
-        </p>
-        <div class="flex flex-col md:flex-row gap-2 md:items-center">
-          <input id="files" type="file" multiple
-            class="block w-full text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-slate-800 file:text-slate-100 hover:file:bg-slate-700"/>
-          <button onclick="doUpload()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-sm font-medium border border-slate-700 shadow">Upload</button>
-        </div>
-        <pre id="upload_out" class="mt-3 text-xs rounded-xl bg-slate-950/60 border border-slate-800 p-3 overflow-auto max-h-52"></pre>
-
-        <hr class="border-slate-800 my-6"/>
-
-        <h3 class="text-md font-semibold mb-3">Proposal Options</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">sponsor_name</label>
-            <input id="sponsor" value="ACME Corp"
-              class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm"/>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">campaign_title</label>
-            <input id="campaign" value="Spring Festival" 
-              class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm"/>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">budget_total_krw</label>
-            <input id="budget" type="number" value="30000000" min="1"
-              class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm"/>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-300">weeks</label>
-            <input id="weeks" type="number" value="2" min="1" max="12"
-              class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm"/>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 mt-4">
-          <label class="inline-flex items-center gap-2 text-sm text-slate-300">
-            <input id="save" type="checkbox" checked class="rounded border-slate-700 bg-slate-900"/>
-            save
-          </label>
-          <select id="format" class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm">
-            <option value="md" selected>md</option>
-            <option value="pdf">pdf</option>
-            <option value="both">both</option>
-          </select>
-          <select id="orgType" class="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm">
-            <option value="general" selected>general</option>
-            <option value="festival">festival</option>
-            <option value="museum">museum</option>
-            <option value="theatre">theatre</option>
-            <option value="foundation">foundation</option>
-            <option value="gallery">gallery</option>
-          </select>
-        </div>
-      </section>
-
-      <!-- Right: Output -->
-      <section class="rounded-2xl bg-slate-900/60 border border-slate-800 shadow p-5">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="text-lg font-semibold">Response</h2>
-          <div class="flex items-center gap-2">
-            <span id="statusDot" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span>
-            <span id="statusText" class="text-xs text-slate-400">idle</span>
-          </div>
-        </div>
-
-        <div class="mt-4">
-          <pre id="out" class="text-xs rounded-xl bg-slate-950/60 border border-slate-800 p-4 overflow-auto min-h-[520px]"></pre>
-        </div>
-
-        <div class="mt-4 text-xs text-slate-400 leading-relaxed">
-          <p class="mb-1">팁</p>
-          <ul class="list-disc pl-5 space-y-1">
-            <li><span class="font-mono">/artbiz/proposal</span> 500이면 보통 <span class="font-mono">nomic-embed-text</span> 임베딩 모델 미설치 또는 LLM 타임아웃입니다.</li>
-            <li>Ollama 모델: <span class="font-mono">ollama pull llama3.1:8b</span>, <span class="font-mono">ollama pull nomic-embed-text</span></li>
-          </ul>
-        </div>
-      </section>
-    </main>
+<!-- ═══ Offcanvas Sidebar ═══ -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
+  <div class="offcanvas-header">
+    <span class="offcanvas-title" id="sidebarLabel">
+      <i class="bi bi-book-half"></i> 지식 베이스
+    </span>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
+  <div class="offcanvas-body">
 
+    <!-- Search -->
+    <div class="sidebar-search position-relative">
+      <i class="bi bi-search search-icon"></i>
+      <input type="text" id="doc-search" placeholder="챕터 검색…" oninput="filterDocs(this.value)">
+    </div>
+
+    <!-- Doc list -->
+    <div class="sidebar-section-label">📚 교재 챕터</div>
+    <div id="doc-list"></div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Settings -->
+    <div class="sidebar-section-label">⚙️ 설정</div>
+    <div class="sidebar-settings">
+      <label>응답 모드</label>
+      <select id="mode-select" onchange="setMode(this.value)">
+        <option value="rag" selected>RAG — 교재 기반 답변</option>
+        <option value="chat">Chat — AI 직접 답변</option>
+        <option value="plan">Plan — 투자 전략 수립</option>
+      </select>
+
+      <label>검색 문서 수 (Top K)</label>
+      <input type="number" id="topk-input" value="5" min="1" max="20">
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-footer">
+      <div><i class="bi bi-cpu"></i> RAG · LangChain · ChromaDB</div>
+      <div style="margin-top:3px;opacity:.7">데이터: data/docs/*.md (15챕터 + 용어집)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Navbar ═══ -->
+<nav class="tv-nav">
+  <button class="btn-sidebar" data-bs-toggle="offcanvas" data-bs-target="#sidebar" title="교재 사이드바">
+    <i class="bi bi-list"></i>
+  </button>
+
+  <a class="brand" href="#">
+    <span class="logo-icon">📈</span>
+    주식 AI Agent
+  </a>
+
+  <span class="spacer"></span>
+
+  <div class="status-pill">
+    <span class="status-dot"></span>
+    <span id="status-label">준비됨</span>
+  </div>
+</nav>
+
+<!-- ═══ Main ═══ -->
+<div class="main-wrapper">
+  <div id="chat-area">
+    <div class="chat-container">
+
+      <!-- Welcome card -->
+      <div class="welcome-card" id="welcome-card">
+        <h1>📈 주식 AI Agent</h1>
+        <p>15개 챕터 투자분석 교재를 RAG로 검색하여 답변합니다.<br>
+           재무제표·기술적 분석·포트폴리오·밸류에이션 등 무엇이든 물어보세요.</p>
+        <div class="quick-chips">
+          <span class="quick-chip" onclick="quickAsk(this)">PER과 PBR의 차이점은?</span>
+          <span class="quick-chip" onclick="quickAsk(this)">재무제표 3가지를 설명해줘</span>
+          <span class="quick-chip" onclick="quickAsk(this)">DCF 밸류에이션 계산 방법</span>
+          <span class="quick-chip" onclick="quickAsk(this)">이동평균선(MA) 매매 전략</span>
+          <span class="quick-chip" onclick="quickAsk(this)">ETF와 일반펀드의 차이</span>
+          <span class="quick-chip" onclick="quickAsk(this)">분산투자 포트폴리오 전략 짜줘</span>
+          <span class="quick-chip" onclick="quickAsk(this)">ROE와 ROA 투자 활용법</span>
+          <span class="quick-chip" onclick="quickAsk(this)">엘리어트 파동 이론이란?</span>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div id="messages"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Input Footer ═══ -->
+<div class="input-footer">
+  <div class="input-inner">
+    <div class="mode-pills">
+      <button class="mode-pill active" data-mode="rag"  onclick="setModePill('rag')">
+        <i class="bi bi-database"></i> RAG
+      </button>
+      <button class="mode-pill" data-mode="chat" onclick="setModePill('chat')">
+        <i class="bi bi-chat-dots"></i> Chat
+      </button>
+      <button class="mode-pill" data-mode="plan" onclick="setModePill('plan')">
+        <i class="bi bi-kanban"></i> Plan
+      </button>
+    </div>
+
+    <div class="input-row">
+      <textarea id="user-input" rows="1"
+        placeholder="질문을 입력하세요… (Enter 전송 / Shift+Enter 줄바꿈)"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"></textarea>
+      <button class="btn-send" id="send-btn" onclick="sendMessage()" title="전송">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+    <div class="input-hint">Enter 전송 &nbsp;·&nbsp; Shift+Enter 줄바꿈</div>
+  </div>
+</div>
+
+<!-- ═══ Scripts ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script>
-  function setStatus(state, msg){
-    const dot = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    text.textContent = msg || state;
-    dot.className = 'h-2.5 w-2.5 rounded-full ' + (
-      state === 'ok' ? 'bg-emerald-500' :
-      state === 'err' ? 'bg-rose-500' :
-      state === 'work' ? 'bg-amber-400' : 'bg-slate-500'
-    );
-  }
+/* ── marked config ── */
+marked.setOptions({ breaks: true, gfm: true });
 
-  async function apiPostJson(path, body){
-    setStatus('work', 'requesting…');
-    const res = await fetch(path, {
+/* ── State ── */
+let currentMode = 'rag';
+let isLoading   = false;
+
+const DOC_META = [
+  { file: '01.md', num: '01', title: '개인·법인·세무·회계 기초 상식' },
+  { file: '02.md', num: '02', title: '경제지표 분석 (물가·유가 등)' },
+  { file: '03.md', num: '03', title: '거시경제 상황 분석 실습' },
+  { file: '04.md', num: '04', title: '산업 분석' },
+  { file: '05.md', num: '05', title: '산업 분석 실습' },
+  { file: '06.md', num: '06', title: '재무제표 I — 손익계산서·대차대조표' },
+  { file: '07.md', num: '07', title: '재무제표 II — 현금흐름표·기업가치' },
+  { file: '08.md', num: '08', title: '상대가치 평가 (밸류에이션 멀티플)' },
+  { file: '09.md', num: '09', title: '기술적 분석 I — 추세·지표' },
+  { file: '10.md', num: '10', title: '기술적 분석 II — 패턴·엘리어트 파동' },
+  { file: '11.md', num: '11', title: '주식·배당·금융상품 기초 상식' },
+  { file: '12.md', num: '12', title: '금융상품 구분 (자본시장법 기준)' },
+  { file: '13.md', num: '13', title: 'ETF 심화 — 일반펀드 vs ETF 비교' },
+  { file: '14.md', num: '14', title: '포트폴리오 이론 및 성과 분석' },
+  { file: '15.md', num: '15', title: '자산배분 모델' },
+  { file: 'voca.md', num: '용어', title: '투자분석 핵심 용어집' },
+];
+
+/* ── Render doc list ── */
+function renderDocList(filter) {
+  const list = document.getElementById('doc-list');
+  const q = (filter || '').toLowerCase();
+  const items = DOC_META.filter(d =>
+    !q || d.title.toLowerCase().includes(q) || d.num.includes(q)
+  );
+  list.innerHTML = items.map(d => `
+    <div class="doc-item" onclick="queryDoc('${escHtml(d.title)}')">
+      <span class="doc-num">${d.num}</span>
+      <span class="doc-title">${escHtml(d.title)}</span>
+    </div>
+  `).join('');
+}
+
+function filterDocs(val) { renderDocList(val); }
+
+function queryDoc(title) {
+  const sidebar = bootstrap.Offcanvas.getInstance(document.getElementById('sidebar'));
+  if (sidebar) sidebar.hide();
+  setInput(`「${title}」의 핵심 내용을 요약해줘`);
+  sendMessage();
+}
+
+/* ── Mode ── */
+function setMode(val) {
+  currentMode = val;
+  document.querySelectorAll('.mode-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.mode === val);
+  });
+  document.getElementById('mode-select').value = val;
+}
+
+function setModePill(val) { setMode(val); }
+
+/* ── Quick chip ── */
+function quickAsk(el) {
+  setInput(el.textContent.trim());
+  sendMessage();
+}
+
+/* ── Input helpers ── */
+function setInput(text) {
+  const ta = document.getElementById('user-input');
+  ta.value = text;
+  autoResize(ta);
+}
+
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+/* ── Send ── */
+async function sendMessage() {
+  const ta  = document.getElementById('user-input');
+  const q   = ta.value.trim();
+  if (!q || isLoading) return;
+
+  const topK = parseInt(document.getElementById('topk-input').value) || 5;
+
+  appendUserBubble(q);
+  ta.value = ''; autoResize(ta);
+
+  document.getElementById('welcome-card').style.display = 'none';
+
+  setLoading(true);
+  const typingId = showTyping();
+
+  try {
+    const res = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ q, mode: currentMode, top_k: topK }),
     });
-    let data = null;
-    try { data = await res.json(); } catch(e){ data = { raw: await res.text() }; }
-    if(!res.ok){
-      setStatus('err', 'error');
-      throw { status: res.status, data };
-    }
-    setStatus('ok', 'ok');
-    return data;
+    if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+    const data = await res.json();
+    removeTyping(typingId);
+    appendAIBubble(data);
+  } catch (err) {
+    removeTyping(typingId);
+    appendErrorBubble(err.message);
+  } finally {
+    setLoading(false);
   }
+}
 
-  function show(obj){
-    document.getElementById('out').textContent = JSON.stringify(obj, null, 2);
-  }
-  function showUpload(obj){
-    document.getElementById('upload_out').textContent = JSON.stringify(obj, null, 2);
-  }
+/* ── Bubble builders ── */
+function appendUserBubble(text) {
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `<div class="bubble user">${escHtml(text)}</div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
+}
 
-  async function doChat(){
-    const q = document.getElementById('q').value;
-    const mode = document.getElementById('mode').value;
-    const topk = parseInt(document.getElementById('topk').value || '0', 10);
-    const autoApprove = document.getElementById('autoApprove').value === 'true';
-    try{
-      const data = await apiPostJson('/chat', { q, mode, top_k: topk || null, auto_approve: autoApprove });
-      show(data);
-    }catch(e){
-      show(e);
-    }
-  }
+function appendAIBubble(data) {
+  const { answer = '', mode = 'rag', used_docs = [] } = data;
 
-  async function doSelfQuery(){
-    const q = document.getElementById('q').value;
-    const topk = parseInt(document.getElementById('topk').value || '4', 10);
-    try{
-      const data = await apiPostJson('/rag/self-query', { q, top_k: topk || 4 });
-      show(data);
-    }catch(e){
-      show(e);
-    }
-  }
+  const modeIcons = { rag: 'database', chat: 'chat-dots', plan: 'kanban' };
+  const modeLabels = { rag: 'RAG', chat: 'Chat', plan: 'Plan' };
 
-  async function doProposal(){
-    const sponsor = document.getElementById('sponsor').value;
-    const campaign = document.getElementById('campaign').value;
-    const budget = parseInt(document.getElementById('budget').value || '0', 10);
-    const weeks = parseInt(document.getElementById('weeks').value || '2', 10);
-    const save = document.getElementById('save').checked;
-    const format = document.getElementById('format').value;
-    const org_type = document.getElementById('orgType').value;
-    const autoApprove = document.getElementById('autoApprove').value === 'true';
+  const mdHtml = marked.parse(answer);
 
-    try{
-      const data = await apiPostJson('/artbiz/proposal', {
-        sponsor_name: sponsor,
-        campaign_title: campaign,
-        budget_total_krw: budget,
-        weeks,
-        save,
-        format,
-        org_type,
-        auto_approve: autoApprove
-      });
-      show(data);
-    }catch(e){
-      show(e);
-    }
-  }
+  const sourcesHtml = used_docs.length
+    ? `<div class="sources">
+        ${used_docs.map(d => {
+          const src = (d.meta && (d.meta.source || d.meta.filename)) || '교재';
+          const label = friendlySourceName(src);
+          return `<span class="source-chip"><i class="bi bi-file-earmark-text"></i>${escHtml(label)}</span>`;
+        }).join('')}
+      </div>`
+    : '';
 
-  async function doUpload(){
-    const input = document.getElementById('files');
-    const files = input.files;
-    if(!files || files.length === 0){
-      showUpload({ok:false, detail:'파일을 선택하세요.'});
-      return;
-    }
-    setStatus('work', 'uploading…');
-    const fd = new FormData();
-    for(const f of files){ fd.append('files', f); }  // multiple
-    const res = await fetch('/docs/upload', { method:'POST', body: fd });
-    let data = null;
-    try { data = await res.json(); } catch(e){ data = { raw: await res.text() }; }
-    if(!res.ok){
-      setStatus('err', 'upload error');
-      showUpload({status:res.status, data});
-      return;
-    }
-    setStatus('ok', 'uploaded');
-    showUpload(data);
-  }
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.innerHTML = `
+    <div class="bubble ai">
+      <div class="mode-badge ${escHtml(mode)}">
+        <i class="bi bi-${modeIcons[mode] || 'cpu'}"></i>
+        ${modeLabels[mode] || mode}
+      </div>
+      <div class="md-content">${mdHtml}</div>
+      ${sourcesHtml}
+    </div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
+}
+
+function appendErrorBubble(msg) {
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.innerHTML = `
+    <div class="bubble ai" style="border-left-color:var(--tv-red)">
+      <div class="mode-badge" style="background:#fee2e2;color:var(--tv-red)">
+        <i class="bi bi-exclamation-circle"></i> 오류
+      </div>
+      <div style="color:var(--tv-red)">${escHtml(msg)}</div>
+    </div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
+}
+
+/* ── Typing indicator ── */
+let _typingSeq = 0;
+function showTyping() {
+  const id = 'typing-' + (++_typingSeq);
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.id = id;
+  row.innerHTML = `
+    <div class="bubble ai" style="padding:8px 14px;">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+/* ── Utils ── */
+function setLoading(v) {
+  isLoading = v;
+  const btn = document.getElementById('send-btn');
+  btn.disabled = v;
+  document.getElementById('status-label').textContent = v ? '생각 중…' : '준비됨';
+}
+
+function scrollBottom() {
+  const area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function friendlySourceName(src) {
+  const map = {
+    '01.md': '01 개인·법인·세무', '02.md': '02 경제지표',
+    '03.md': '03 거시경제', '04.md': '04 산업분석',
+    '05.md': '05 산업분석 실습', '06.md': '06 재무제표 I',
+    '07.md': '07 재무제표 II', '08.md': '08 밸류에이션',
+    '09.md': '09 기술적분석 I', '10.md': '10 기술적분석 II',
+    '11.md': '11 주식·배당', '12.md': '12 금융상품',
+    '13.md': '13 ETF', '14.md': '14 포트폴리오',
+    '15.md': '15 자산배분', 'voca.md': '용어집',
+  };
+  const base = src.split('/').pop() || src;
+  return map[base] || base;
+}
+
+/* ── Init ── */
+renderDocList();
+document.getElementById('user-input').focus();
 </script>
 </body>
 </html>
