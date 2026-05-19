@@ -36,16 +36,6 @@ services:
     - 8988:8000
     networks:
     - shared-net
-    depends_on:
-    - ollama
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-    - ollama:/root/.ollama
-    networks:
-    - shared-net
-volumes:
-  ollama: null
 networks:
   shared-net:
-    driver: bridge
+    external: true
