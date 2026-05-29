@@ -6,6 +6,7 @@ from fastapi import Request
 from starlette.responses import RedirectResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 
 from app.server.docs_api import router as docs_router
 from app.server.self_query_api import router as rag_router
@@ -32,7 +33,7 @@ from app.server.proposal_footnotes import apply_footnotes
 
 
 
-from app.server.agent import run, answer_rag, answer_chat, answer_plan
+from app.server.agent import run, answer_rag, answer_chat, answer_plan, stream_chat, stream_rag, stream_plan, route
 from app.server.store import get_action, update_status
 from app.server.feedback import save_feedback, get_stats as feedback_stats
 from app.server.eval import full_report as eval_report
@@ -262,6 +263,64 @@ def docs_titles():
     except Exception:
         pass
     return result
+
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    import asyncio
+
+    r = route(req.q) if not req.mode else None
+    chosen = req.mode or r.mode
+
+    routed_by = "user" if req.mode else "default"
+    if not req.mode:
+        from app.server.feedback import preferred_mode_for
+        fb_mode = preferred_mode_for(req.q)
+        if fb_mode:
+            chosen = fb_mode
+            routed_by = "feedback"
+
+    async def generate():
+        yield json.dumps({"type": "start", "mode": chosen, "routed_by": routed_by}) + "\n"
+
+        if chosen == "rag":
+            gen = stream_rag(req.q, top_k=req.top_k)
+        elif chosen == "plan":
+            gen = stream_plan(req.q)
+        else:
+            gen = stream_chat(req.q)
+
+        # keepalive: 데이터가 없는 동안 3초마다 ping 전송해 브라우저 timeout 방지
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def fill():
+            try:
+                async for line in gen:
+                    await queue.put(line)
+            except Exception as e:
+                await queue.put(json.dumps({"type": "error", "message": str(e)}) + "\n")
+            await queue.put(None)  # sentinel
+
+        task = asyncio.create_task(fill())
+        try:
+            while True:
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=3.0)
+                    if item is None:
+                        break
+                    yield item
+                except asyncio.TimeoutError:
+                    yield json.dumps({"type": "ping"}) + "\n"
+        finally:
+            await task
+
+        yield json.dumps({"type": "done"}) + "\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"},
+    )
+
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):

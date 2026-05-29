@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>주식 AI Agent</title>
 
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
   <!-- Pretendard -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <!-- Bootstrap 5 -->
@@ -41,10 +45,16 @@
     html, body {
       height: 100%;
       margin: 0;
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 14px;
+      font-family: 'Noto Sans KR', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
       color: var(--tv-text);
       background: var(--tv-bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      line-height: 1.7;
     }
 
     /* ── Navbar ── */
@@ -208,7 +218,8 @@
     .doc-item .doc-title {
       font-size: 13px;
       color: var(--tv-text);
-      line-height: 1.4;
+      line-height: 1.55;
+      word-break: keep-all;
     }
 
     .sidebar-divider {
@@ -288,16 +299,18 @@
       box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .welcome-card h1 {
-      font-size: 20px;
+      font-size: 21px;
       font-weight: 700;
       color: var(--tv-text);
       margin-bottom: 6px;
-      letter-spacing: -.3px;
+      letter-spacing: -0.03em;
     }
     .welcome-card p {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--tv-secondary);
       margin-bottom: 16px;
+      line-height: 1.75;
+      word-break: keep-all;
     }
     .quick-chips {
       display: flex;
@@ -338,11 +351,13 @@
     .bubble {
       max-width: 88%;
       border-radius: 14px;
-      padding: 12px 16px;
-      font-size: 14px;
-      line-height: 1.65;
-      word-break: break-word;
+      padding: 13px 18px;
+      font-size: 15px;
+      line-height: 1.75;
+      word-break: keep-all;
+      overflow-wrap: break-word;
       position: relative;
+      letter-spacing: -0.01em;
     }
     .bubble.user {
       background: var(--tv-user-bg);
@@ -377,17 +392,22 @@
     .mode-badge.plan { background: var(--tv-badge-plan); color: #92400e; }
 
     /* Markdown content */
-    .md-content h1,.md-content h2,.md-content h3 {
-      margin-top: 1em; margin-bottom: .4em;
-      font-weight: 700; line-height: 1.3;
-      color: var(--tv-text);
+    .md-content {
+      word-break: keep-all;
+      overflow-wrap: break-word;
     }
-    .md-content h1 { font-size: 17px; }
-    .md-content h2 { font-size: 15px; }
-    .md-content h3 { font-size: 14px; }
-    .md-content p  { margin: .5em 0; }
-    .md-content ul, .md-content ol { padding-left: 20px; margin: .4em 0; }
-    .md-content li { margin: .2em 0; }
+    .md-content h1,.md-content h2,.md-content h3 {
+      margin-top: 1.1em; margin-bottom: .45em;
+      font-weight: 700; line-height: 1.4;
+      color: var(--tv-text);
+      letter-spacing: -0.02em;
+    }
+    .md-content h1 { font-size: 18px; }
+    .md-content h2 { font-size: 16px; }
+    .md-content h3 { font-size: 15px; }
+    .md-content p  { margin: .55em 0; line-height: 1.8; }
+    .md-content ul, .md-content ol { padding-left: 20px; margin: .45em 0; }
+    .md-content li { margin: .3em 0; line-height: 1.75; }
     .md-content table {
       width: 100%;
       border-collapse: collapse;
@@ -539,16 +559,18 @@
       border: 1.5px solid var(--tv-border);
       border-radius: 12px;
       padding: 10px 14px;
-      font-size: 14px;
-      font-family: inherit;
+      font-size: 15px;
+      font-family: 'Noto Sans KR', 'Pretendard', -apple-system, sans-serif;
       resize: none;
       outline: none;
-      line-height: 1.5;
+      line-height: 1.65;
       max-height: 160px;
       overflow-y: auto;
       background: var(--tv-bg);
       color: var(--tv-text);
       transition: border-color .15s, background .15s;
+      word-break: keep-all;
+      -webkit-font-smoothing: antialiased;
     }
     #user-input:focus {
       border-color: var(--tv-accent);
@@ -646,6 +668,20 @@
     }
     .fb-bar { height: 100%; border-radius: 10px; transition: width .4s; }
     .fb-count { font-size: 11px; color: var(--tv-muted); min-width: 38px; text-align: right; }
+
+    /* ── Stream cursor ── */
+    .stream-cursor {
+      display: inline-block;
+      color: var(--tv-accent);
+      font-size: 14px;
+      animation: blink .7s step-end infinite;
+      margin-left: 1px;
+      vertical-align: baseline;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
 
     /* ── Scrollbar ── */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -872,7 +908,7 @@ function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
-/* ── Send ── */
+/* ── Send (streaming) ── */
 async function sendMessage() {
   const ta  = document.getElementById('user-input');
   const q   = ta.value.trim();
@@ -888,22 +924,136 @@ async function sendMessage() {
   setLoading(true);
   const typingId = showTyping();
 
+  let streamBubble = null;
+  let fullText     = '';
+  let usedDocs     = [];
+  let mode         = currentMode;
+  let routedBy     = 'user';
+
   try {
-    const res = await fetch('/chat', {
+    const res = await fetch('/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ q, mode: currentMode, top_k: topK }),
     });
     if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
-    const data = await res.json();
-    removeTyping(typingId);
-    appendAIBubble(data, q);
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();          // 마지막 미완성 줄은 다음 청크로
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let msg;
+        try { msg = JSON.parse(trimmed); } catch { continue; }
+
+        if (msg.type === 'ping') {
+          continue;  // keepalive — 무시
+
+        } else if (msg.type === 'start') {
+          mode      = msg.mode || currentMode;
+          routedBy  = msg.routed_by || 'user';
+          removeTyping(typingId);
+          streamBubble = createStreamBubble(mode, routedBy);
+
+        } else if (msg.type === 'meta') {
+          usedDocs = msg.used_docs || [];
+
+        } else if (msg.type === 'token') {
+          fullText += msg.content || '';
+          if (streamBubble) updateStreamBubble(streamBubble, fullText);
+
+        } else if (msg.type === 'error') {
+          if (streamBubble) streamBubble.remove();
+          appendErrorBubble(msg.message || '알 수 없는 오류');
+
+        } else if (msg.type === 'done') {
+          if (streamBubble) finalizeStreamBubble(streamBubble, fullText, usedDocs, mode, q);
+        }
+      }
+    }
+
+    if (streamBubble && fullText) {
+      finalizeStreamBubble(streamBubble, fullText, usedDocs, mode, q);
+    }
   } catch (err) {
     removeTyping(typingId);
     appendErrorBubble(err.message);
   } finally {
     setLoading(false);
   }
+}
+
+/* ── Stream bubble helpers ── */
+function createStreamBubble(mode, routedBy) {
+  const modeIcons  = { rag: 'database', chat: 'chat-dots', plan: 'kanban' };
+  const modeLabels = { rag: 'RAG', chat: 'Chat', plan: 'Plan' };
+  const routedBadge = routedBy === 'feedback'
+    ? `<span class="routed-badge"><i class="bi bi-graph-up"></i> 피드백 기반</span>` : '';
+
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.innerHTML = `
+    <div class="bubble ai">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+        <div class="mode-badge ${escHtml(mode)}" style="margin-bottom:0;">
+          <i class="bi bi-${modeIcons[mode] || 'cpu'}"></i>
+          ${modeLabels[mode] || mode}
+        </div>
+        ${routedBadge}
+      </div>
+      <div class="md-content stream-content"></div>
+      <span class="stream-cursor">▍</span>
+    </div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+function updateStreamBubble(row, text) {
+  const content = row.querySelector('.stream-content');
+  if (content) content.innerHTML = marked.parse(text);
+  scrollBottom();
+}
+
+function finalizeStreamBubble(row, text, usedDocs, mode, q) {
+  const cursor = row.querySelector('.stream-cursor');
+  if (cursor) cursor.remove();
+
+  const content = row.querySelector('.stream-content');
+  if (content) content.innerHTML = marked.parse(text);
+
+  const sourcesHtml = usedDocs.length
+    ? `<div class="sources">
+        ${usedDocs.map(d => {
+          const src = (d.meta && (d.meta.source || d.meta.filename)) || '교재';
+          return `<span class="source-chip"><i class="bi bi-file-earmark-text"></i>${escHtml(friendlySourceName(src))}</span>`;
+        }).join('')}
+      </div>` : '';
+
+  const qEsc = escHtml(q || '');
+  const modeEsc = escHtml(mode);
+  const usedDocsJson = escHtml(JSON.stringify(usedDocs));
+
+  const bubble = row.querySelector('.bubble.ai');
+  if (sourcesHtml) bubble.insertAdjacentHTML('beforeend', sourcesHtml);
+  bubble.insertAdjacentHTML('beforeend', `
+    <div class="feedback-row"
+         data-q="${qEsc}" data-mode="${modeEsc}" data-used-docs="${usedDocsJson}">
+      <span class="feedback-label">답변이 도움이 됐나요?</span>
+      <button class="btn-feedback" onclick="submitFeedback(this, 1)" title="도움됨">👍</button>
+      <button class="btn-feedback" onclick="submitFeedback(this, -1)" title="별로임">👎</button>
+    </div>`);
+  scrollBottom();
 }
 
 /* ── Bubble builders ── */

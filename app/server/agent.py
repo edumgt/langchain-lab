@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Tuple, List, Dict
+from typing import Any, AsyncIterator, Literal, Optional, Tuple, List, Dict
 
 from pydantic import BaseModel, Field
 
@@ -170,6 +170,62 @@ def answer_plan(q: str) -> Tuple[str, List[Dict[str, Any]]]:
     )
     used: List[Dict[str, Any]] = []
     return getattr(resp, "content", str(resp)), used
+
+
+# ---------------------------------------------------------------------
+# Streaming variants
+# ---------------------------------------------------------------------
+
+async def stream_chat(q: str) -> AsyncIterator[str]:
+    llm = build_chat_model(temperature=0.2, streaming=True)
+    async for chunk in llm.astream([
+        {"role": "system", "content": _CHAT_SYSTEM},
+        {"role": "user", "content": q},
+    ]):
+        content = getattr(chunk, "content", "") or ""
+        if content:
+            yield json.dumps({"type": "token", "content": content}) + "\n"
+
+
+async def stream_rag(q: str, top_k: Optional[int] = None) -> AsyncIterator[str]:
+    import asyncio
+    loop = asyncio.get_event_loop()
+
+    await loop.run_in_executor(
+        None,
+        lambda: ingest_dir(settings.DOCS_DIR, settings.CHROMA_PERSIST_DIR, collection="stock_docs"),
+    )
+    vs = vectorstore(settings.CHROMA_PERSIST_DIR, collection="stock_docs")
+    k = int(top_k or settings.TOP_K)
+    docs = await loop.run_in_executor(None, lambda: vs.similarity_search(q, k=k))
+
+    used = [
+        {"meta": getattr(d, "metadata", {}), "preview": (d.page_content or "")[:200]}
+        for d in docs[:3]
+    ]
+    yield json.dumps({"type": "meta", "used_docs": used}) + "\n"
+
+    llm = build_chat_model(temperature=0, streaming=True)
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", _RAG_SYSTEM),
+        ("human", "CONTEXT:\n{context}\n\nQ:\n{q}"),
+    ])
+    context = _build_rag_context(docs, max_sources=3)
+    async for chunk in (prompt | llm).astream({"context": context, "q": q}):
+        content = getattr(chunk, "content", "") or ""
+        if content:
+            yield json.dumps({"type": "token", "content": content}) + "\n"
+
+
+async def stream_plan(q: str) -> AsyncIterator[str]:
+    llm = build_chat_model(temperature=0.3, streaming=True)
+    async for chunk in llm.astream([
+        {"role": "system", "content": _PLAN_SYSTEM},
+        {"role": "user", "content": q},
+    ]):
+        content = getattr(chunk, "content", "") or ""
+        if content:
+            yield json.dumps({"type": "token", "content": content}) + "\n"
 
 
 # ---------------------------------------------------------------------
