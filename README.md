@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
 # LangChain Catalog Lab (Docker + Python)
- 
+  
 LangChain의 기능을 **“카탈로그(기능별 독립 데모)”** 형태로 최대한 촘촘하게 정리한 학습 레포입니다.  
 각 데모는 **단독 실행 가능**하며, 동일한 `LLM Factory`를 통해 **Ollama / OpenAI-호환 / OpenAI**를 스위칭할 수 있습니다.
 
