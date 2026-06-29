@@ -147,15 +147,49 @@ OPENAI_MODEL=gpt-4o-mini
 ## 5) v3 추가 카탈로그 (FAISS/자기질의/고급 LangGraph)
 
 ### RAG 확장: FAISS / BM25 / Ensemble / Self-Query
-- `catalog/rag/08_vectorstore_faiss.py`
+- `catalog/rag/08_vectorstore_faiss.py` — FAISS 기본 (save/load/similarity_search)
 - `catalog/rag/09_retriever_bm25.py`
 - `catalog/rag/10_ensemble_retriever.py`
-- `catalog/rag/11_self_query_retriever.py`
+- `catalog/rag/11_self_query_retriever.py` — Self-Query 기본 (metadata 부착 + 필터 검색)
+
+### RAG 심화: FAISS 고급 / Self-Query 고급
+- `catalog/rag/13_faiss_advanced.py` — **FAISS 고급**
+  - ① `similarity_search_with_score` : L2 거리(낮을수록 유사) 함께 반환
+  - ② `max_marginal_relevance_search` : 다양성+유사도 동시 고려 (fetch_k / lambda_mult)
+  - ③ `as_retriever` 세 가지 모드 : `similarity` / `mmr` / `similarity_score_threshold`
+  - ④ `add_documents` : 기존 인덱스에 문서 점진적 추가
+  - ⑤ `merge_from` : 두 FAISS 인덱스를 하나로 병합
+  - ⑥ IndexFlatL2 / IVF / HNSW 인덱스 타입 설명
+- `catalog/rag/14_self_query_advanced.py` — **Self-Query 고급**
+  - ① `enable_limit` : "N개만" 같은 자연어 수량 제한 LLM 파싱
+  - ② `verbose=True` : 생성된 StructuredQuery 디버깅 출력
+  - ③ fallback : 메타 조건 없는 질문 → 자동 semantic 검색
+  - ④ Self-Query + ContextualCompression 결합 패턴
+  - ⑤ AttributeInfo 타입 목록 (string / integer / float / list / date)
+
+> 노트: `catalog/rag/05_vectorstore_compare_notes.md` — Chroma vs FAISS 선택 기준 심화  
+> 노트: `catalog/rag/07_self_query_retriever_note.md` — Self-Query 디버깅·설계 심화
 
 ### LangGraph 확장: Checkpoint / Subgraph / Multi-role synthesis
 - `catalog/langgraph/04_checkpoint_sqlite.py`
 - `catalog/langgraph/05_subgraph_pattern.py`
 - `catalog/langgraph/06_multi_role_agents.py`
+
+### LangGraph 심화: 병렬 팬아웃 / 루프 / ToolNode
+- `catalog/langgraph/09_parallel_fanout.py` — **병렬 팬아웃/팬인 (Send API)**
+  - `Send("node", payload)` 로 동적 병렬 디스패치
+  - `Annotated[list, operator.add]` reducer 로 결과 자동 누적
+  - router → analyze(×3, 병렬) → synthesize 흐름
+- `catalog/langgraph/10_loop_cycle.py` — **사이클/루프 (재시도 패턴)**
+  - state 에 `retry_count` 로 루프 횟수 추적
+  - 품질 기준 미달 → `generate` 노드 루프백
+  - `MAX_RETRIES` 로 무한루프 방지
+  - 재시도 시 이전 실패 이유를 힌트로 전달해 품질 향상
+- `catalog/langgraph/11_tool_node_graph.py` — **ToolNode + MessagesState (ReAct 루프)**
+  - `ToolNode` : tool_calls 자동 실행, ToolMessage 생성 내장
+  - `add_messages` reducer : 메시지 리스트 안전 누적
+  - `tools_condition` : tool_calls 유무로 자동 라우팅
+  - 수동 AgentExecutor 없이 LangGraph 로 ReAct 루프 구현
 
 ### Guardrails 확장: Citation required
 - `catalog/guardrails/04_citation_required_guard.py`
