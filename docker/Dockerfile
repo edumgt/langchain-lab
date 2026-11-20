@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY app /app/app
 COPY catalog /app/catalog
+COPY lessons /app/lessons
 COPY data /app/data
+COPY tests /app/tests
 
 CMD ["python", "catalog/health/00_healthcheck.py"]

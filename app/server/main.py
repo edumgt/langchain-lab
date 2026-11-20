@@ -1,43 +1,27 @@
 from __future__ import annotations
 import os
 import json
-import datetime
-from fastapi import Request
-from starlette.responses import RedirectResponse
-from fastapi import FastAPI, HTTPException
+import time
+from pathlib import Path
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
 
+from app.core import settings
 from app.server.docs_api import router as docs_router
 from app.server.self_query_api import router as rag_router
 from app.server.proposal_api import router as artbiz_router
-from fastapi.middleware.cors import CORSMiddleware
-
 from app.server.models import ChatRequest, ChatResponse, ApproveRequest, ApproveResponse
-from fastapi import UploadFile, File
-from fastapi.responses import RedirectResponse
 from app.server.metadata_extractor import build_sidecar_meta
 from app.server.self_query_parser import parse_self_query
-from app.server.index_queue import enqueue, read_jobs
-from app.server.proposal_store import save_markdown, list_versions, mark_approved
-from app.server.pdf_renderer import render_markdown_to_pdf
+from app.server.proposal_store import list_versions
 from app.server.proposal_template import template_markdown_skeleton
-from app.server.proposal_normalizer import normalize_to_template, check_structure
-from app.server.proposal_section_rewriter import rewrite_sections_llm, assemble_fixed_template_md
-from app.server.proposal_consistency import overall as consistency_overall
-from app.server.proposal_citation_enforcer import enforce_section_citations, citation_placement_check
-from app.server.proposal_footnotes import apply_footnotes
-
-
-
-
-
-
+from app.server.proposal_normalizer import check_structure
 from app.server.agent import run, answer_rag, answer_chat, answer_plan, stream_chat, stream_rag, stream_plan, route
 from app.server.store import get_action, update_status
 from app.server.feedback import save_feedback, get_stats as feedback_stats
 from app.server.eval import full_report as eval_report
-
 from app.tools.schemas import (
     BudgetSplitRequest, BudgetSplitResponse,
     TimelineRequest, TimelineResponse,
@@ -46,12 +30,10 @@ from app.tools.schemas import (
 )
 from app.tools.impl import budget_split, timeline, sponsorship_package, make_report
 
-
-import shutil
-
-DOCS_DIR = "/app/data/docs"
-META_DIR = "/app/data/docs/.meta"
-META_INDEX = "/app/data/docs/.meta/index.json"
+DOCS_DIR = settings.DOCS_DIR
+META_DIR = os.path.join(DOCS_DIR, ".meta")
+META_INDEX = os.path.join(META_DIR, "index.json")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 def _load_index():
     os.makedirs(META_DIR, exist_ok=True)
@@ -76,7 +58,20 @@ def _upsert_doc(meta: dict):
     return idx
 
 
-app = FastAPI(title="주식 AI Agent", version="1.0.0")
+app = FastAPI(
+    title="LangChain Lab AI Agent",
+    description="LangChain / LangGraph Catalog & E2E RAG, Agent, and Proposal API",
+    version="1.1.0",
+)
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+    response.headers["X-Process-Time-Ms"] = f"{elapsed_ms:.2f}"
+    return response
 
 
 
@@ -140,9 +135,15 @@ async def docs_upload(request: Request):
         raise HTTPException(status_code=422, detail="No files provided. Use form field 'file' or 'files'.")
 
     saved = []
+    docs_root = os.path.realpath(DOCS_DIR)
     for uf in upload_files:
-        filename = os.path.basename(getattr(uf, "filename", "uploaded"))
-        dest = os.path.join(DOCS_DIR, filename)
+        raw_name = getattr(uf, "filename", "") or ""
+        filename = os.path.basename(raw_name.strip())
+        if not filename or filename in (".", ".."):
+            raise HTTPException(status_code=400, detail="Invalid filename.")
+        dest = os.path.realpath(os.path.join(docs_root, filename))
+        if not (dest == docs_root or dest.startswith(docs_root + os.sep)):
+            raise HTTPException(status_code=400, detail="Invalid destination path.")
         with open(dest, "wb") as fp:
             fp.write(await uf.read())
 
@@ -236,7 +237,14 @@ def eval_endpoint(total_responses: int = 0):
 
 @app.get("/health")
 def health():
-    return {"ok": True}
+    return {
+        "ok": True,
+        "service": "langchain-lab-api",
+        "version": "1.1.0",
+        "provider": settings.LLM_PROVIDER,
+        "rag_enabled": settings.RAG_ENABLED,
+        "docs_dir": DOCS_DIR,
+    }
 
 
 @app.get("/docs/titles")
@@ -367,7 +375,7 @@ def approve(req: ApproveRequest):
     return ApproveResponse(ok=True, message="rejected", action={"id": req.action_id, "status":"rejected"})
 
 # --- UI (Static) ---
-app.mount("/ui", StaticFiles(directory="/app/app/server/static", html=True), name="static")
+app.mount("/ui", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
 @app.get("/")
 def root():

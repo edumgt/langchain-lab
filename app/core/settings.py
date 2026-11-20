@@ -1,4 +1,7 @@
 import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def env(key: str, default: str | None = None) -> str | None:
     v = os.getenv(key)
@@ -22,8 +25,8 @@ OPENAI_API_KEY = env("OPENAI_API_KEY", "")
 OPENAI_MODEL = env("OPENAI_MODEL", "gpt-4o-mini")
 
 RAG_ENABLED = (env("RAG_ENABLED", "true") or "true").lower() == "true"
-CHROMA_PERSIST_DIR = env("CHROMA_PERSIST_DIR", "/app/storage/chroma")
-DOCS_DIR = env("DOCS_DIR", "/app/data/docs")
+CHROMA_PERSIST_DIR = env("CHROMA_PERSIST_DIR", str(PROJECT_ROOT / "storage" / "chroma"))
+DOCS_DIR = env("DOCS_DIR", str(PROJECT_ROOT / "data" / "docs"))
 CHUNK_SIZE = int(env("CHUNK_SIZE", "900") or "900")
 CHUNK_OVERLAP = int(env("CHUNK_OVERLAP", "150") or "150")
 TOP_K = int(env("TOP_K", "5") or "5")

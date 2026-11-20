@@ -22,7 +22,8 @@ def try_register_korean_fonts() -> dict:
         candidates.append(("ArtBizKR-Bold", env_b))
 
     # assets fonts
-    assets_dir = "/app/assets/fonts"
+    from app.core.settings import PROJECT_ROOT
+    assets_dir = str(PROJECT_ROOT / "assets" / "fonts")
     if os.path.isdir(assets_dir):
         for fn in os.listdir(assets_dir):
             if fn.lower().endswith(".ttf"):

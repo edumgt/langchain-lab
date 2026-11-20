@@ -6,7 +6,8 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-FEEDBACK_PATH = os.getenv("FEEDBACK_PATH", "/app/storage/feedback.json")
+from app.core.settings import PROJECT_ROOT
+FEEDBACK_PATH = os.getenv("FEEDBACK_PATH", str(PROJECT_ROOT / "storage" / "feedback.json"))
 
 
 def _load() -> dict:

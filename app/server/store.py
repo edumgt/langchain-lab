@@ -2,7 +2,8 @@ from __future__ import annotations
 import os, sqlite3, json, time, uuid
 from typing import Any
 
-DB_PATH = os.getenv("ARTBIZ_DB", "/app/storage/artbiz_actions.sqlite")
+from app.core.settings import PROJECT_ROOT
+DB_PATH = os.getenv("ARTBIZ_DB", str(PROJECT_ROOT / "storage" / "artbiz_actions.sqlite"))
 
 def _conn():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

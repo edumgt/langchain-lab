@@ -2,7 +2,8 @@ from __future__ import annotations
 import os, json, time
 from typing import Any, Dict, List
 
-QUEUE_PATH = os.getenv("INDEX_QUEUE", "/app/storage/index_queue.jsonl")
+from app.core.settings import PROJECT_ROOT
+QUEUE_PATH = os.getenv("INDEX_QUEUE", str(PROJECT_ROOT / "storage" / "index_queue.jsonl"))
 
 def enqueue(job: dict) -> dict:
     os.makedirs(os.path.dirname(QUEUE_PATH), exist_ok=True)

@@ -2,7 +2,8 @@ from __future__ import annotations
 import os, json, time, re, hashlib
 from typing import Any, Dict, List, Optional
 
-BASE_DIR = os.getenv("PROPOSAL_DIR", "/app/storage/proposals")
+from app.core.settings import PROJECT_ROOT
+BASE_DIR = os.getenv("PROPOSAL_DIR", str(PROJECT_ROOT / "storage" / "proposals"))
 INDEX_PATH = os.path.join(BASE_DIR, "index.json")
 
 DEFAULT_TEMPLATE_VERSION = os.getenv("PROPOSAL_TEMPLATE_VERSION", "v11")
